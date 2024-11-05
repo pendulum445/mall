@@ -85,12 +85,39 @@ func (s *ProductService) GetProduct(ctx context.Context, req *GetProductReq) (*P
 	}, nil
 }
 
-//func (s *ProductService) SearchProducts(ctx context.Context, req *SearchProductsReq) (*SearchProductsResp, error) {
-//	query := `
-//		SELECT p.id, p.name, p.description, p.picture, p.price, GROUP_CONCAT(c.name) AS categorys
-//		FROM product p
-//		JOIN product_categorys pc ON p.id = pc.product_id
-//		JOIN categorys c ON pc.category_id = c.id
-//		WHERE p.name LIKE? GROUP BY p.id
-//	`
-//}
+func (s *ProductService) SearchProducts(ctx context.Context, req *SearchProductsReq) (*SearchProductsResp, error) {
+	query := `
+		SELECT p.id, p.name, p.description, p.picture, p.price, GROUP_CONCAT(c.name) AS categorys
+		FROM product p
+		JOIN product_categorys pc ON p.id = pc.product_id
+		JOIN categorys c ON pc.category_id = c.id
+		WHERE p.name LIKE ? or p.description LIKE ? GROUP BY p.id
+	`
+	rows, err := s.Db.Query(query, "%"+req.Query+"%")
+	if err != nil {
+		return nil, err
+	}
+	resp := &SearchProductsResp{}
+	for rows.Next() {
+		var (
+			id          uint32
+			name        string
+			description string
+			picture     string
+			price       float32
+			categories  string
+		)
+		if err := rows.Scan(&id, &name, &description, &picture, &price, &categories); err != nil {
+			return nil, err
+		}
+		resp.Results = append(resp.Results, &Product{
+			Id:          id,
+			Name:        name,
+			Description: description,
+			Picture:     picture,
+			Price:       price,
+			Categories:  strings.Split(categories, ","),
+		})
+	}
+	return resp, nil
+}
