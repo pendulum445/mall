@@ -14,10 +14,10 @@ type ProductService struct {
 
 func (s *ProductService) ListProducts(ctx context.Context, req *ListProductsReq) (*ListProductsResp, error) {
 	query := `
-		SELECT p.id, p.name, p.description, p.picture, p.price, GROUP_CONCAT(c.name) AS categorys
-		FROM product p
-		JOIN product_categorys pc ON p.id = pc.product_id
-		JOIN categorys c ON pc.category_id = c.id
+		SELECT p.id, p.name, p.description, p.picture, p.price, GROUP_CONCAT(c.name) AS categories
+		FROM products p
+		JOIN product_categories pc ON p.id = pc.product_id
+		JOIN categories c ON pc.category_id = c.id
 		WHERE c.name = ? GROUP BY p.id
 	`
 	rows, err := s.Db.Query(query, req.CategoryName)
@@ -55,12 +55,12 @@ func (s *ProductService) ListProducts(ctx context.Context, req *ListProductsReq)
 	return resp, nil
 }
 
-func (s *ProductService) GetProduct(ctx context.Context, req *GetProductReq) (*Product, error) {
+func (s *ProductService) GetProduct(ctx context.Context, req *GetProductReq) (*GetProductResp, error) {
 	query := `
-		SELECT p.id, p.name, p.description, p.picture, p.price, GROUP_CONCAT(c.name) AS categorys
-		FROM product p
-		JOIN product_categorys pc ON p.id = pc.product_id
-		JOIN categorys c ON pc.category_id = c.id
+		SELECT p.id, p.name, p.description, p.picture, p.price, GROUP_CONCAT(c.name) AS categories
+		FROM products p
+		JOIN product_categories pc ON p.id = pc.product_id
+		JOIN categories c ON pc.category_id = c.id
 		WHERE p.id = ? GROUP BY p.id
 	`
 	var (
@@ -75,25 +75,27 @@ func (s *ProductService) GetProduct(ctx context.Context, req *GetProductReq) (*P
 	if err != nil {
 		return nil, err
 	}
-	return &Product{
-		Id:          id,
-		Name:        name,
-		Description: description,
-		Picture:     picture,
-		Price:       price,
-		Categories:  strings.Split(categories, ","),
+	return &GetProductResp{
+		Product: &Product{
+			Id:          id,
+			Name:        name,
+			Description: description,
+			Picture:     picture,
+			Price:       price,
+			Categories:  strings.Split(categories, ","),
+		},
 	}, nil
 }
 
 func (s *ProductService) SearchProducts(ctx context.Context, req *SearchProductsReq) (*SearchProductsResp, error) {
 	query := `
-		SELECT p.id, p.name, p.description, p.picture, p.price, GROUP_CONCAT(c.name) AS categorys
-		FROM product p
-		JOIN product_categorys pc ON p.id = pc.product_id
-		JOIN categorys c ON pc.category_id = c.id
+		SELECT p.id, p.name, p.description, p.picture, p.price, GROUP_CONCAT(c.name) AS categories
+		FROM products p
+		JOIN product_categories pc ON p.id = pc.product_id
+		JOIN categories c ON pc.category_id = c.id
 		WHERE p.name LIKE ? or p.description LIKE ? GROUP BY p.id
 	`
-	rows, err := s.Db.Query(query, "%"+req.Query+"%")
+	rows, err := s.Db.Query(query, "%"+req.Query+"%", "%"+req.Query+"%")
 	if err != nil {
 		return nil, err
 	}
